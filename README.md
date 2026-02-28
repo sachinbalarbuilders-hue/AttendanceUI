@@ -42,9 +42,18 @@ A robust background service that bridges the hardware and software.
 3.  Access at `http://localhost:5000`.
 
 ### Building/Installing the Service
-1.  Open `/source/repos/Z903AttendanceService` in Visual Studio.
+1.  Open `/Z903AttendanceService` in your IDE.
 2.  Build the solution (`bin/Debug/Z903AttendanceService.exe`).
 3.  Install as a Windows Service using `InstallUtil.exe` or a custom installer.
+
+### 🚀 Automated UI Deployment
+For quick updates to your local IIS server, use the provided batch script in the repository root:
+1.  Run `Update_AttendanceUI.bat` as **Administrator**.
+2.  The script will:
+    -   Publish the latest `AttendanceUI` code.
+    -   Stop IIS and worker processes.
+    -   Mirror files to `C:\inetpub\AttendanceUI`.
+    -   Restart IIS automatically.
 
 ---
 
