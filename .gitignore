@@ -1,0 +1,27 @@
+# .gitignore for AttendanceSystem
+
+# Build artifacts
+bin/
+obj/
+publish/
+*.exe
+*.dll
+*.pdb
+
+# IDE specific
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Packages
+packages/
+node_modules/
+
+# Logs
+*.log
+build_output*.txt
+
+# Local settings
+appsettings.Development.json
