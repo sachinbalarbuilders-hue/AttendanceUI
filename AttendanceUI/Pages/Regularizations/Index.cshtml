@@ -1,0 +1,143 @@
+@page
+@model AttendanceUI.Pages.Regularizations.IndexModel
+
+@{
+    ViewData["Title"] = "Regularization Requests";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="mb-1 fw-bold">Regularization Requests</h4>
+        <p class="text-muted mb-0 small">Review and manage attendance regularizations</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-page="BulkCreate" class="btn btn-outline-primary">
+            <i class="bi bi-stack me-1"></i>Bulk Regularization
+        </a>
+        <a asp-page="Create" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Create New
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">All Requests</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-modern align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">App #</th>
+                        <th>Employee</th>
+                        <th>Type / Dates</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @{
+                    var groupedRequests = Model.RegularizationRequests
+                        .GroupBy(r => new {
+                            r.ApplicationNumber,
+                            r.EmployeeId,
+                            r.Reason,
+                            r.CreatedAt,
+                            EmployeeName = r.Employee?.EmployeeName ?? "Unknown"
+                        })
+                        .OrderByDescending(g => g.Key.CreatedAt)
+                        .ToList();
+                }
+
+                @if (!groupedRequests.Any())
+                {
+                    <tr><td colspan="7" class="text-center py-5 text-muted">
+                        <i class="bi bi-clock-history fs-1 d-block mb-2 opacity-25"></i>
+                        No regularization requests found.
+                    </td></tr>
+                }
+                else
+                {
+                    foreach (var group in groupedRequests)
+                    {
+                        var first = group.First();
+                        var ids = string.Join(",", group.Select(r => r.Id));
+                        var count = group.Count();
+                        var minDate = group.Min(r => r.RequestDate);
+                        var maxDate = group.Max(r => r.RequestDate);
+                        var status = group.All(r => r.Status == "Approved") ? "Approved" :
+                                     group.All(r => r.Status == "Rejected") ? "Rejected" : "Pending";
+                        var statusClass = status == "Approved" ? "text-bg-success" : status == "Rejected" ? "text-bg-danger" : "text-bg-warning";
+
+                        <tr>
+                            <td class="ps-4">
+                                @if (!string.IsNullOrEmpty(group.Key.ApplicationNumber))
+                                {
+                                    <code class="text-primary">@group.Key.ApplicationNumber</code>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small"><em>No #</em></span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar-circle" style="width:32px;height:32px;font-size:0.8rem;">
+                                        @(group.Key.EmployeeName.Length > 0 ? group.Key.EmployeeName[0].ToString().ToUpper() : "?")
+                                    </div>
+                                    <span class="fw-semibold">@group.Key.EmployeeName</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge text-bg-secondary mb-1">@(count > 1 ? $"{count} Logs" : first.RequestType)</span><br/>
+                                @if (first.RequestType != "Missed Punch" && !first.WaivePenalty)
+                                {
+                                    <span class="badge bg-soft-warning text-dark border border-warning mb-1" style="font-size: 0.7rem;">
+                                        <i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i>Penalty Applied
+                                    </span><br/>
+                                }
+                                <small class="text-muted">
+                                    @if (minDate == maxDate) { @minDate.ToString("dd MMM yyyy") }
+                                    else { <text>@minDate.ToString("dd MMM") – @maxDate.ToString("dd MMM yyyy")</text> }
+                                </small>
+                            </td>
+                            <td class="text-muted small" style="max-width:200px;">@group.Key.Reason</td>
+                            <td><span class="badge @statusClass">@status.ToUpper()</span></td>
+                            <td class="small text-muted">@group.Key.CreatedAt.ToString("dd MMM HH:mm")</td>
+                            <td class="text-end pe-4">
+                                <div class="d-flex gap-1 justify-content-end">
+                                    @if (count == 1)
+                                    {
+                                        <a asp-page="./Edit" asp-route-id="@first.Id" class="btn btn-sm btn-outline-primary" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    }
+                                    <form method="post" asp-page-handler="Delete" asp-route-ids="@ids" class="d-inline"
+                                          onsubmit="return confirm('Delete @(count > 1 ? "these " + count + " requests" : "this request")?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Delete"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                    @if (status == "Pending")
+                                    {
+                                        <form method="post" asp-page-handler="Approve" asp-route-ids="@ids" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-success" title="Approve"><i class="bi bi-check-lg"></i></button>
+                                        </form>
+                                        <form method="post" asp-page-handler="Reject" asp-route-ids="@ids" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Reject"><i class="bi bi-x-lg"></i></button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

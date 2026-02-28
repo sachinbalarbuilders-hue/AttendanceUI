@@ -1,0 +1,94 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="row g-4 mb-4">
+    <!-- Total Employees -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card card-stat h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="text-muted fw-semibold">Total Employees</span>
+                    <div class="stat-icon bg-soft-primary">
+                        <i class="bi bi-people"></i>
+                    </div>
+                </div>
+                <h2 class="mb-1 fw-bold text-dark">@Model.TotalEmployees</h2>
+                <small class="text-success"><i class="bi bi-arrow-up-short"></i> Active</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Present Today -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card card-stat h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="text-muted fw-semibold">Present Today</span>
+                    <div class="stat-icon bg-soft-success">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                </div>
+                <h2 class="mb-1 fw-bold text-dark">@Model.PresentToday</h2>
+                <small class="text-muted">@DateTime.Now.ToString("dd MMM yyyy")</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Leaves -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card card-stat h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="text-muted fw-semibold">Pending Leaves</span>
+                    <div class="stat-icon bg-soft-warning">
+                        <i class="bi bi-calendar-minus"></i>
+                    </div>
+                </div>
+                <h2 class="mb-1 fw-bold text-dark">@Model.PendingLeaves</h2>
+                <a asp-page="/Leaves/Applications/Index" class="small text-primary text-decoration-none stretched-link">Review Requests <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Regularizations -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card card-stat h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="text-muted fw-semibold">Regularizations</span>
+                    <div class="stat-icon bg-soft-secondary">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                </div>
+                <h2 class="mb-1 fw-bold text-dark">@Model.PendingRegularizations</h2>
+                <a asp-page="/Regularizations/Index" class="small text-primary text-decoration-none stretched-link">Action Needed <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h5 class="mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex gap-3 flex-wrap">
+                    <a asp-page="/Attendance/Process" class="btn btn-outline-primary">
+                        <i class="bi bi-gear me-2"></i> Process Attendance
+                    </a>
+                    <a asp-page="/Payroll/Process" class="btn btn-outline-success">
+                        <i class="bi bi-cash-stack me-2"></i> Process Payroll
+                    </a>
+                    <a asp-page="/Employees/Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-person-plus me-2"></i> Manage Employees
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

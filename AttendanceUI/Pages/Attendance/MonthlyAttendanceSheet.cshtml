@@ -1,0 +1,167 @@
+@page
+@model AttendanceUI.Pages.Attendance.MonthlyAttendanceSheetModel
+@{
+    ViewData["Title"] = "Monthly Attendance Sheet";
+}
+
+<style>
+    .table-xs th, .table-xs td {
+        padding: 0.1rem 0.2rem;
+        font-size: 0.75rem;
+        text-align: center;
+        vertical-align: middle;
+    }
+    .status-P { color: green; font-weight: bold; }
+    .status-A { color: red; font-weight: bold; }
+    .status-W\/O { color: blue; }
+    .status-W\/OP { color: #0056b3; font-weight: bold; } /* Darker blue for worked weekoff */
+    .status-HF { color: orange; font-weight: bold; }
+    .status-H { color: purple; }
+    .status-L { color: #9c27b0; font-weight: bold; } /* Purple for Leave */
+    .status-LP { color: #d81b60; font-weight: bold; } /* Pink/Red for worked Leave */
+    
+    .row-header { font-weight: bold; text-align: right; background-color: #f8f9fa; width: 50px; }
+    .emp-header { background-color: #e9ecef; text-align: left !important; font-weight: bold; }
+    .weekoff-col { background-color: #fff9c4 !important; color: #795548; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3 d-print-none">
+    <h1 class="h4">Monthly Attendance Sheet</h1>
+    <form method="get" class="row g-2 align-items-center">
+        <div class="col-auto">
+            <select name="Month" class="form-select form-select-sm">
+                @for (int i = 1; i <= 12; i++)
+                {
+                    <option value="@i" selected="@(Model.Month == i)">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)</option>
+                }
+            </select>
+        </div>
+        <div class="col-auto">
+            <input type="number" name="Year" class="form-control form-control-sm" value="@Model.Year" style="width: 80px;" />
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-sm btn-primary">Load</button>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="window.print()">Print</button>
+        </div>
+    </form>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-xs w-100">
+        <tbody>
+            @foreach (var summary in Model.EmployeeSummaries)
+            {
+                <!-- Spacer Row -->
+                <tr class="table-borderless" style="height: 20px;">
+                    <td colspan="@(Model.DaysInMonth + 1)" style="background-color: white;"></td>
+                </tr>
+
+                <!-- Employee Header Row with Stats -->
+                <tr>
+                    <td colspan="@(Model.DaysInMonth + 1)" class="emp-header">
+                        <div class="d-flex justify-content-between">
+                            <span>
+                                <strong>@(summary.Employee?.EmployeeName ?? "Unknown")</strong> 
+                                <span class="text-muted ms-2">(ID: @summary.Employee?.EmployeeId)</span>
+                                <span class="badge bg-light text-dark border ms-2">
+                                    @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(Model.Month)-@Model.Year
+                                </span>
+                            </span>
+                            <span class="small">
+                                <span class="badge bg-success text-white me-1">P: @summary.PresentCount</span>
+                                <span class="badge bg-danger text-white me-1">A: @summary.AbsentCount</span>
+                                <span class="badge bg-primary text-white me-1">W/O: @summary.WeekoffCount</span>
+                                <span class="badge bg-info text-dark me-1">L: @summary.LeaveCount</span>
+                                <span class="badge bg-warning text-dark me-1">HF: @summary.HalfDayCount</span>
+                                <span class="badge bg-secondary text-white">Work: @((int)summary.TotalWorkDuration.TotalHours):@summary.TotalWorkDuration.ToString(@"mm")</span>
+                            </span>
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- Date Number Row -->
+                <tr class="table-light text-center">
+                    <th style="width: 50px;">Date</th>
+                    @for (int i = 1; i <= Model.DaysInMonth; i++)
+                    {
+                        var dateForHeader = new DateOnly(Model.Year, Model.Month, i);
+                        bool isWeekoffCol = !string.IsNullOrWhiteSpace(summary.Employee?.Weekoff) &&
+                            summary.Employee!.Weekoff.Trim().Equals(dateForHeader.DayOfWeek.ToString(), StringComparison.OrdinalIgnoreCase);
+                        <th class="@(isWeekoffCol ? "weekoff-col" : "")">@i</th>
+                    }
+                </tr>
+
+                <!-- Day Name Row -->
+                <tr class="table-light text-center">
+                    <th class="row-header">Day</th>
+                    @for (int i = 1; i <= Model.DaysInMonth; i++)
+                    {
+                        var date = new DateOnly(Model.Year, Model.Month, i);
+                        bool isWeekoffDay = !string.IsNullOrWhiteSpace(summary.Employee?.Weekoff) &&
+                            summary.Employee!.Weekoff.Trim().Equals(date.DayOfWeek.ToString(), StringComparison.OrdinalIgnoreCase);
+                        <th class="small @(isWeekoffDay ? "weekoff-col fw-semibold" : "text-muted")">@date.ToString("ddd")</th>
+                    }
+                </tr>
+
+                <!-- IN Time Row -->
+                <tr>
+                    <td class="row-header">IN</td>
+                    @for (int i = 1; i <= Model.DaysInMonth; i++)
+                    {
+                        var rec = summary.DailyRecords[i];
+                        // Compare down to the minute. If shift is 10:00:00, arriving at 10:00:59 is still 10:00.
+                        bool isStrictlyLate = rec.InTime.HasValue && rec.ShiftStartTime.HasValue && 
+                            new TimeOnly(rec.InTime.Value.Hour, rec.InTime.Value.Minute) > new TimeOnly(rec.ShiftStartTime.Value.Hour, rec.ShiftStartTime.Value.Minute);
+                        
+                        <td class="@(isStrictlyLate ? "text-danger fw-bold" : "")">
+                            @(rec.InTime?.ToString("HH:mm") ?? "-")
+                        </td>
+                    }
+                </tr>
+
+                <!-- OUT Time Row -->
+                <tr>
+                    <td class="row-header">OUT</td>
+                    @for (int i = 1; i <= Model.DaysInMonth; i++)
+                    {
+                        var rec = summary.DailyRecords[i];
+                        <td>@(rec.OutTime?.ToString("HH:mm") ?? "-")</td>
+                    }
+                </tr>
+
+                <!-- BREAK Duration Row -->
+                <tr>
+                    <td class="row-header">BREAK</td>
+                    @for (int i = 1; i <= Model.DaysInMonth; i++)
+                    {
+                        var rec = summary.DailyRecords[i];
+                        <td>@(rec.IsActualBreak ? (rec.BreakDuration?.ToString(@"hh\:mm") ?? "-") : "-")</td>
+                    }
+                </tr>
+
+                <!-- WORK Duration Row -->
+                <tr>
+                    <td class="row-header">WORK</td>
+                    @for (int i = 1; i <= Model.DaysInMonth; i++)
+                    {
+                        var rec = summary.DailyRecords[i];
+                        <td>@(rec.WorkDuration?.ToString(@"hh\:mm") ?? "-")</td>
+                    }
+                </tr>
+
+                <!-- STATUS Row -->
+                <tr>
+                    <td class="row-header">Status</td>
+                    @for (int i = 1; i <= Model.DaysInMonth; i++)
+                    {
+                        var rec = summary.DailyRecords[i];
+                        <td class="status-@rec.Status">
+                            @rec.Status
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+

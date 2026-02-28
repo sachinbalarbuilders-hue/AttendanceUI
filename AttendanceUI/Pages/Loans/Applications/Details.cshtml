@@ -1,0 +1,174 @@
+@page
+@model AttendanceUI.Pages.Loans.Applications.DetailsModel
+
+@{
+    ViewData["Title"] = "Loan Details";
+    var loan = Model.LoanApplication;
+    var statusClass = (loan.Status == "Approved" || loan.Status == "Active") ? "text-bg-success" :
+                      loan.Status == "Completed" ? "text-bg-secondary" :
+                      loan.Status == "Rejected" ? "text-bg-danger" :
+                      loan.Status == "Cancelled" ? "text-bg-secondary" : "text-bg-warning";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="mb-1 fw-bold">Loan Application Details</h4>
+        <p class="text-muted mb-0 small">
+            @if (!string.IsNullOrEmpty(loan.ApplicationNumber))
+            {
+                <code>@loan.ApplicationNumber</code>
+                <text> — </text>
+            }
+            @loan.Employee?.EmployeeName
+        </p>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <span class="badge @statusClass fs-6">@loan.Status.ToUpper()</span>
+        <a asp-page="./Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Application Info -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-file-text me-2 text-primary"></i>Application Info</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5 text-muted">Employee</dt>
+                    <dd class="col-sm-7 fw-semibold">@loan.Employee?.EmployeeName</dd>
+
+                    <dt class="col-sm-5 text-muted">Loan Type</dt>
+                    <dd class="col-sm-7"><span class="badge text-bg-secondary">@loan.LoanType?.TypeName</span></dd>
+
+                    <dt class="col-sm-5 text-muted">Loan Amount</dt>
+                    <dd class="col-sm-7 fw-bold">₹@loan.LoanAmount.ToString("N0")</dd>
+
+                    <dt class="col-sm-5 text-muted">Installments</dt>
+                    <dd class="col-sm-7">@loan.Installments months</dd>
+
+                    <dt class="col-sm-5 text-muted">Per Month</dt>
+                    <dd class="col-sm-7">₹@loan.InstallmentAmount.ToString("N0")</dd>
+
+                    <dt class="col-sm-5 text-muted">Start Date</dt>
+                    <dd class="col-sm-7">@loan.StartDate.ToString("dd MMM yyyy")</dd>
+
+                    <dt class="col-sm-5 text-muted">Status</dt>
+                    <dd class="col-sm-7"><span class="badge @statusClass">@loan.Status.ToUpper()</span></dd>
+
+                    @if (loan.Status == "Active" || loan.Status == "Completed")
+                    {
+                        <dt class="col-sm-5 text-muted">Remaining</dt>
+                        <dd class="col-sm-7">₹@loan.RemainingAmount.ToString("N0") (@loan.RemainingInstallments mo left)</dd>
+                    }
+
+                    <dt class="col-sm-5 text-muted">Reason</dt>
+                    <dd class="col-sm-7 text-muted small">@loan.Reason</dd>
+
+                    @if (!string.IsNullOrEmpty(loan.ApprovedBy))
+                    {
+                        <dt class="col-sm-5 text-muted">Approved By</dt>
+                        <dd class="col-sm-7">@loan.ApprovedBy</dd>
+
+                        <dt class="col-sm-5 text-muted">Approved On</dt>
+                        <dd class="col-sm-7">@loan.ApprovedDate?.ToString("dd MMM yyyy HH:mm")</dd>
+                    }
+                </dl>
+
+                @if (loan.Status == "Pending")
+                {
+                    <hr />
+                    <div class="d-flex gap-2">
+                        <form method="post" asp-page-handler="Approve" asp-route-id="@loan.Id">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-success" onclick="return confirm('Approve this loan?')">
+                                <i class="bi bi-check-lg me-1"></i>Approve
+                            </button>
+                        </form>
+                        <form method="post" asp-page-handler="Reject" asp-route-id="@loan.Id">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Reject this loan?')">
+                                <i class="bi bi-x-lg me-1"></i>Reject
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Installment Schedule -->
+    <div class="col-md-6">
+        @if (Model.Installments.Any())
+        {
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0"><i class="bi bi-calendar-check me-2 text-success"></i>Installment Schedule</h5>
+                    <span class="badge text-bg-secondary">@Model.Installments.Count installments</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-modern align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-3">#</th>
+                                    <th>Due Month</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Paid Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var inst in Model.Installments)
+                                {
+                                    var instClass = inst.Status == "Paid" ? "text-bg-success" :
+                                                    inst.Status == "Partial" ? "text-bg-warning" : "text-bg-secondary";
+                                    <tr>
+                                        <td class="ps-3 text-muted">@inst.InstallmentNumber</td>
+                                        <td>@inst.DueMonth</td>
+                                        <td>₹@inst.Amount.ToString("N0")</td>
+                                        <td><span class="badge @instClass">@inst.Status.ToUpper()</span></td>
+                                        <td class="small text-muted">
+                                            @(inst.PaidDate.HasValue ? inst.PaidDate.Value.ToString("dd MMM yyyy") : "—")
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="mt-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <a asp-page="./Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to List
+        </a>
+    </div>
+    <div class="d-flex gap-2">
+        @if (loan.Status == "Active")
+        {
+            <form method="post" asp-page-handler="Foreclose" asp-route-id="@loan.Id"
+                  onsubmit="return confirm('FORECLOSE LOAN: This will mark all remaining installments as PAID and settle the full balance. Proceed?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-shield-check me-1 text-white"></i>Foreclose Loan
+                </button>
+            </form>
+        }
+        <form method="post" asp-page-handler="Delete" asp-route-id="@loan.Id"
+              onsubmit="return confirm('Delete this loan application? This also removes all pending installments.');">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-danger">
+                <i class="bi bi-trash me-1"></i>Delete Application
+            </button>
+        </form>
+    </div>
+</div>
