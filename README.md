@@ -26,11 +26,13 @@ A robust background service that bridges the hardware and software.
 
 ---
 
-## 🚀 Getting Started
-
-### Database Setup
+## 🗄️ Database Setup
 1.  Target Database: `biometric_attendance` (MySQL).
-2.  Ensure connection strings are updated in:
+2.  **Fresh Setup**: Use the provided `biometric_attendance_schema.sql` file to create the tables without any data:
+    ```bash
+    mysql -u root -p biometric_attendance < biometric_attendance_schema.sql
+    ```
+3.  Ensure connection strings are updated in:
     -   `AttendanceUI/appsettings.json`
     -   `Z903AttendanceService/App.config`
 
